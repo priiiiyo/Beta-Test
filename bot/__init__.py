@@ -106,23 +106,50 @@ rss_dict = {}
 
 AUTHORIZED_CHATS = set()
 SUDO_USERS = set()
+MOD_USERS = set()
 AS_DOC_USERS = set()
 AS_MEDIA_USERS = set()
-EXTENTION_FILTER = {'.torrent'}
-LEECH_LOG = set()
+EXTENTION_FILTER = set(['.torrent'])
 MIRROR_LOGS = set()
+LINK_LOGS = set()
+LEECH_LOG = set()
+LEECH_LOG_ALT = set()
+if ospath.exists('authorized_chats.txt'):
+    with open('authorized_chats.txt', 'r+') as f:
+        lines = f.readlines()
+        for line in lines:
+            AUTHORIZED_CHATS.add(int(line.split()[0]))
+if ospath.exists('sudo_users.txt'):
+    with open('sudo_users.txt', 'r+') as f:
+        lines = f.readlines()
+        for line in lines:
+            SUDO_USERS.add(int(line.split()[0]))
+
+if ospath.exists('mod_users.txt'):
+    with open('mod_users.txt', 'r+') as f:
+        lines = f.readlines()
+        for line in lines:
+            MOD_USERS.add(int(line.split()[0]))
 try:
-    aid = getConfig('AUTHORIZED_CHATS')
-    aid = aid.split(' ')
-    for _id in aid:
-        AUTHORIZED_CHATS.add(int(_id))
+    achats = getConfig('AUTHORIZED_CHATS')
+    achats = achats.split(" ")
+    for chats in achats:
+        AUTHORIZED_CHATS.add(int(chats))
 except:
     pass
 try:
-    aid = getConfig('SUDO_USERS')
-    aid = aid.split(' ')
-    for _id in aid:
-        SUDO_USERS.add(int(_id))
+    schats = getConfig('SUDO_USERS')
+    schats = schats.split(" ")
+    for chats in schats:
+        SUDO_USERS.add(int(chats))
+except:
+    pass
+
+try:
+    schats = getConfig('MOD_USERS')
+    schats = schats.split(" ")
+    for chats in schats:
+        MOD_USERS.add(int(chats))
 except:
     pass
 try:
@@ -133,19 +160,66 @@ try:
             EXTENTION_FILTER.add(x.lower())
 except:
     pass
+
+if ospath.exists("logs_chat.txt"):
+    with open("logs_chat.txt", "r+") as f:
+        lines = f.readlines()
+        for line in lines:
+            #    LOGGER.info(line.split())
+            MIRROR_LOGS.add(int(line.split()[0]))
 try:
-    aid = getConfig('LEECH_LOG')
-    aid = aid.split(' ')
-    for _id in aid:
-        LEECH_LOG.add(int(_id))
+    achats = getConfig("MIRROR_LOGS")
+    achats = achats.split(" ")
+    for chats in achats:
+        MIRROR_LOGS.add(int(chats))
 except:
+    logging.warning('Logs Chat Details not provided!')
     pass
+
+if ospath.exists("link_logs.txt"):
+    with open("link_logs.txt", "r+") as f:
+        lines = f.readlines()
+        for line in lines:
+            #    LOGGER.info(line.split())
+            LINK_LOGS.add(int(line.split()[0]))
 try:
-    aid = getConfig('MIRROR_LOGS')
-    aid = aid.split(' ')
-    for _id in aid:
-        MIRROR_LOGS.add(int(_id))
+    achats = getConfig("LINK_LOGS")
+    achats = achats.split(" ")
+    for chats in achats:
+        LINK_LOGS.add(int(chats))
 except:
+    logging.warning('LINK_LOGS Chat id not provided, Proceeding Without it')
+    pass
+
+if ospath.exists("logs_chat.txt"):
+    with open("logs_chat.txt", "r+") as f:
+        lines = f.readlines()
+        for line in lines:
+            #    LOGGER.info(line.split())
+            LEECH_LOG.add(int(line.split()[0]))
+
+if ospath.exists("leech_logs.txt"):
+    with open("leech_logs.txt", "r+") as f:
+        lines = f.readlines()
+        for line in lines:
+            #    LOGGER.info(line.split())
+            LEECH_LOG_ALT.add(int(line.split()[0]))
+try:
+    achats = getConfig("LEECH_LOG")
+    achats = achats.split(" ")
+    for chats in achats:
+        LEECH_LOG.add(int(chats))
+except:
+    logging.warning('Leech Log Channel ID not Provided!')
+    pass
+
+try:
+    achats = getConfig("LEECH_LOG_ALT")
+    achats = achats.split(" ")
+    for chats in achats:
+        LEECH_LOG_ALT.add(int(chats))
+except:
+    logging.warning('Leech Log alt Channel ID not Provided!')
     pass
 try:
     BOT_TOKEN = getConfig('BOT_TOKEN')
