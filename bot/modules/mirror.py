@@ -409,8 +409,8 @@ class MirrorListener:
         if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
             DbManger().rm_complete_task(self.message.link)
 
-def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
-    uname = f'<a href="tg://user?id={update.message.from_user.id}">{update.message.from_user.first_name}</a>'
+def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
+    uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
     if FSUB:
         try:
             user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", update.message.from_user.id)
@@ -421,8 +421,8 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
                 reply_markup = InlineKeyboardMarkup(buttons.build_menu(1))
                 message = sendMarkup(
                     str(f"<b>Dear {uname}️ You haven't join our Updates Channel yet.</b>\n\nKindly Join @{CHANNEL_USERNAME} To Use Bots. "),
-                    bot, update, reply_markup)
-                Thread(target=auto_delete_upload_message, args=(bot, update.message, message)).start()
+                    bot, message, reply_markup)
+                Thread(target=auto_delete_upload_message, args=(bot, self.message, message)).start()
                 return
         except:
             pass
@@ -443,9 +443,9 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
             message = sendMarkup(
                 f"Dear {uname},\n\n<b>I found that you haven't started me in PM (Private Chat) yet 😁.</b>\n\nFrom now on i will give link and leeched files in PM and log channel only 🤫 (Join Log Channel).",
                 bot, update, reply_markup=InlineKeyboardMarkup(keyboard))
-            Thread(target=auto_delete_message, args=(bot, update.message, message)).start()
+            Thread(target=auto_delete_message, args=(bot, self.message, message)).start()
             return
-    mesg = update.message.text.split('\n')
+    mesg = self.message.text.split('\n')
     message_args = mesg[0].split(' ', maxsplit=1)
     name_args = mesg[0].split('|', maxsplit=1)
     qbitsel = False
@@ -475,12 +475,12 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
     if len(pswdMsg) > 1:
         pswd = pswdMsg[1]
 
-    if update.message.from_user.username:
-        tag = f"@{update.message.from_user.username}"
+    if self.message.from_user.username:
+        tag = f"@{self.message.from_user.username}"
     else:
-        tag = update.message.from_user.mention_html(update.message.from_user.first_name)
+        tag = self.message.from_user.mention_html(self.message.from_user.first_name)
 
-    reply_to = update.message.reply_to_message
+    reply_to = self.message.reply_to_message
     if reply_to is not None:
         file = None
         media_array = [reply_to.document, reply_to.video, reply_to.audio]
@@ -509,9 +509,9 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
                 file_name = str(time()).replace(".", "") + ".torrent"
                 link = file.get_file().download(custom_path=file_name)
             elif file.mime_type != "application/x-bittorrent":
-                listener = MirrorListener(bot, update, isZip, extract, isQbit, isLeech, pswd, tag)
+                listener = MirrorListener(bot, message, isZip, extract, isQbit, isLeech, pswd, tag)
                 tg_downloader = TelegramDownloadHelper(listener)
-                ms = update.message
+                ms = self.message
                 tg_downloader.add_download(ms, f'{DOWNLOAD_DIR}{listener.uid}/', name)
                 if multi > 1:
                     sleep(3)
@@ -537,8 +537,8 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
     if not is_url(link) and not is_magnet(link) and not ospath.exists(link):
         help_msg = "❗️ Send link along with command line"
         help_msg += "\nor reply to link or file"
-        msg = sendMessage(help_msg, bot, update)
-        Thread(target=auto_delete_message, args=(bot, update.message, msg)).start()
+        msg = sendMessage(help_msg, bot, message)
+        Thread(target=auto_delete_message, args=(bot, self.message, msg)).start()
 
     LOGGER.info(link)
 
@@ -553,7 +553,7 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
             except DirectDownloadLinkException as e:
                 LOGGER.info(str(e))
                 if str(e).startswith('ERROR:'):
-                    return sendMessage(str(e), bot, update)
+                    return sendMessage(str(e), bot, message)
     """              
     elif isQbit and not is_magnet(link) and not ospath.exists(link):
         if link.endswith('.torrent'):
@@ -576,33 +576,33 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
                     link = error.split("'")[1]
                 else:
                     LOGGER.error(str(e))
-                    return sendMessage(tag + " " + error, bot, update)
+                    return sendMessage(tag + " " + error, bot, message)
         
         else:
             msg = "Qb commands for torrents only. if you are trying to dowload torrent then report."
-            return sendMessage(msg, bot, update)
+            return sendMessage(msg, bot, message)
             """
 
-    listener = MirrorListener(bot, update, isZip, extract, isQbit, isLeech, pswd, tag)
+    listener = MirrorListener(bot, message, isZip, extract, isQbit, isLeech, pswd, tag)
 
     if is_gdrive_link(link):
         if not isZip and not extract and not isLeech:
             gmsg = f"Use /{BotCommands.CloneCommand} to clone Google Drive file/folder\n\n"
             gmsg += f"Use /{BotCommands.ZipMirrorCommand} to make zip of Google Drive folder\n\n"
             gmsg += f"Use /{BotCommands.UnzipMirrorCommand} to extracts Google Drive archive file"
-            return sendMessage(gmsg, bot, update)
+            return sendMessage(gmsg, bot, message)
         Thread(target=add_gd_download, args=(link, listener, is_gdtot)).start()
 
     elif is_mega_link(link):
         if MEGA_API_KEY is not None:
             Thread(target=MegaDownloader(listener).add_download, args=(link, f'{DOWNLOAD_DIR}{listener.uid}/')).start()
         else:
-            sendMessage('MEGA_API_KEY not Provided!', bot, update)
+            sendMessage('MEGA_API_KEY not Provided!', bot, message)
             '''
             if link_type == "folder":
-                sendMessage(f"{uname}, <b>Your Requested MEGA Folder Has Been Added To</b> /{BotCommands.StatusCommand}", bot, update)
+                sendMessage(f"{uname}, <b>Your Requested MEGA Folder Has Been Added To</b> /{BotCommands.StatusCommand}", bot, message)
             else:
-                sendMessage(f"{uname}, <b>Your Requested MEGA File Has Been Added To</b> /{BotCommands.StatusCommand}", bot, update)
+                sendMessage(f"{uname}, <b>Your Requested MEGA File Has Been Added To</b> /{BotCommands.StatusCommand}", bot, message)
                 '''
     elif isQbit:
     #elif isQbit and (is_magnet(link) or ospath.exists(link)):
