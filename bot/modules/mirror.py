@@ -203,86 +203,129 @@ class MirrorListener:
             DbManger().rm_complete_task(self.message.link)
 
     def onUploadComplete(self, link: str, size, files, folders, typ, name: str):
+        if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
+            DbManger().rm_complete_task(self.message.link)
+        msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n<b>📦 Size: </b>{size}"
+        uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
+        chat_id = str(LEECH_LOG)[5:][:-1]
         buttons = ButtonMaker()
         # this is inspired by def mirror to get the link from message
         mesg = self.message.text.split('\n')
         message_args = mesg[0].split(' ', maxsplit=1)
         reply_to = self.message.reply_to_message
-        if self.message.chat.type != 'private' and AUTO_DELETE_UPLOAD_MESSAGE_DURATION != -1:
+        slmsg = f"Added by: {uname} \n👥 User ID: <code>{self.user_id}</code>\n\n"
+        if LINK_LOGS:
+            try:
+                source_link = message_args[1]
+                for link_log in LINK_LOGS:
+                    bot.sendMessage(link_log, text=slmsg + source_link, parse_mode=ParseMode.HTML )
+            except IndexError:
+                pass
             if reply_to is not None:
                 try:
-                    reply_to.delete()
-                except Exception as error:
-                    LOGGER.warning(error)
+                    reply_text = reply_to.text
+                    if is_url(reply_text):
+                        source_link = reply_text.strip()
+                        for link_log in LINK_LOGS:
+                            bot.sendMessage(chat_id=link_log, text=slmsg + source_link, parse_mode=ParseMode.HTML )
+                except TypeError:
                     pass
-        if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
-            DbManger().rm_complete_task(self.message.link)
-        msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n<b>Size: </b>{size}"
-        if self.isLeech:
-            if SOURCE_LINK is True:
-                try:
-                    source_link = message_args[1]
-                    if is_magnet(source_link):
-                        link = telegraph.create_page(
-                        title='Helios-Mirror Source Link',
-                        content=source_link,
-                    )["path"]
-                        buttons.buildbutton(f"🔗 Source Link", f"https://telegra.ph/{link}")
-                    else:
-                        buttons.buildbutton(f"🔗 Source Link", source_link)
-                except Exception as e:
-                    LOGGER.warning(e)
-                pass
-                if reply_to is not None:
-                    try:
-                        reply_text = reply_to.text
-                        if is_url(reply_text):
-                            source_link = reply_text.strip()
-                            if is_magnet(source_link):
-                                link = telegraph.create_page(
-                                    title='Helios-Mirror Source Link',
-                                    content=source_link,
-                                )["path"]
-                                buttons.buildbutton(f"🔗 Source Link", f"https://telegra.ph/{link}")
-                            else:
-                                buttons.buildbutton(f"🔗 Source Link", source_link)
-                    except Exception as e:
-                        LOGGER.warning(e)
-                        pass
-            if BOT_PM:
-                bot_d = bot.get_me()
-                b_uname = bot_d.username
-                botstart = f"http://t.me/{b_uname}"
-                buttons.buildbutton("View file in PM", f"{botstart}")
-            msg += f'\n<b>Total Files: </b>{folders}'
-            if typ != 0:
-                msg += f'\n<b>Corrupted Files: </b>{typ}'
-            msg += f'\n<b>cc: </b>{self.tag}\n\n'
-            if not files:
-                uploadmsg = sendMessage(msg, self.bot, self.message)
+            '''
+        msg_id = 
+        link_id = str(LINK_LOGS)[5:][:-1]
+        S_link =  f"https://t.me/c/{link_id}/{msg_id}"
+            '''
+            
+        msg = f'<b>Name: </b><code>{name.replace("<", "")}</code>\n\n<b>📦 Size: </b>{size}'
+        if AUTO_DELETE_UPLOAD_MESSAGE_DURATION != -1:
+            reply_to = self.message.reply_to_message
+            if reply_to is not None:
+                reply_to.delete()
+            auto_delete_message = int(AUTO_DELETE_UPLOAD_MESSAGE_DURATION / 60)
+            if self.message.chat.type == 'private':
+                warnmsg = ''
             else:
-                fmsg = ''
-                for index, (link, name) in enumerate(files.items(), start=1):
-                    fmsg += f"{index}. <a href='{link}'>{name}</a>\n"
-                    if len(fmsg.encode() + msg.encode()) > 4000:
-                        uploadmsg = sendMarkup(msg + fmsg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
-                        sleep(1)
+                warnmsg = f'\n<b>❗ This message will be deleted in <i>{auto_delete_message} minutes</i> from this group.</b>\n'
+        else:
+            warnmsg = ''
+        if BOT_PM and self.message.chat.type != 'private':
+            pmwarn = f"\n<b>I have sent files in PM 😉.</b>\n"
+            pmwarn_mirror = f"\n<b>I have sent links in PM 😉.</b>\n"
+        elif self.message.chat.type == 'private':
+            pmwarn = ''
+            pmwarn_mirror = ''
+        else:
+            pmwarn = ''
+            pmwarn_mirror = ''
+        logwarn = f"\n<b>I have sent files in Log Channel.(Join Leech Log channel 🤫) </b>\n"
+        if self.isLeech:
+            count = len(files)
+            msg += f'\n<b>🗂 Total Files: </b>{count}'
+            if typ != 0:
+                msg += f'\n<b>❗ Corrupted Files: </b>{typ}'
+            msg += f'\n<b>#Leeched By: </b>{self.tag}\n\n'
+            if BOT_PM:
+                message = sendMessage(msg + pmwarn + warnmsg, self.bot, self.update)
+                Thread(target=auto_delete_upload_message, args=(bot, self.message, message)).start()
+
+            if LEECH_LOG:
+                for i in LEECH_LOG:
+                    '''
+                    if SOURCE_LINK is True:
+                        buttons.buildbutton("🔗 Source Link", link)
+                    '''
+                    indexmsg = ''
+                    for index, item in enumerate(list(files), start=1):
+                        msg_id = files[item]
+                        link = f"{msg_id}"
+                        indexmsg += f"{index}. <a href='{link}'>{item}</a>\n"
+                        if len(indexmsg.encode('utf-8') + msg.encode('utf-8')) > 4000:
+                            sleep(1.5)
+                            bot.sendMessage(chat_id=i, text=msg + indexmsg,
+                                            reply_markup=InlineKeyboardMarkup(buttons.build_menu(2)),
+                                            parse_mode=ParseMode.HTML)
+                            indexmsg = ''
+                    if indexmsg != '':
+                        sleep(1.5)
+                        bot.sendMessage(chat_id=i, text=msg + indexmsg,
+                                        reply_markup=InlineKeyboardMarkup(buttons.build_menu(2)),
+                                        parse_mode=ParseMode.HTML)
+
+
+            else:
+                fmsg = '\n\n'
+                for index, item in enumerate(list(files), start=1):
+                    msg_id = files[item]
+                    link = f"https://t.me/c/{chat_id}/{msg_id}"
+                    fmsg += f"{index}. <a href='{link}'>{item}</a>\n"
+                    if len(fmsg.encode('utf-8') + msg.encode('utf-8')) > 4000:
+                        sendMessage(msg + fmsg + logwarn, self.bot, self.update)
+                        sleep(1.5)
                         fmsg = ''
                 if fmsg != '':
-                    uploadmsg = sendMarkup(msg + fmsg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
-                    Thread(target=auto_delete_upload_message, args=(bot, self.message, uploadmsg)).start()
+                    sendMessage(msg + fmsg, self.bot, self.update)
+
+            try:
+                clean_download(f'{DOWNLOAD_DIR}{self.uid}')
+            except FileNotFoundError:
+                pass
+            with download_dict_lock:
+                del download_dict[self.uid]
+                dcount = len(download_dict)
+            if dcount == 0:
+                self.clean()
+            else:
+                update_all_messages()
         else:
-            msg += f'\n\n<b>Type: </b>{typ}'
+            msg += f'\n\n<b>⚙️ Type: </b>{typ}'
             if ospath.isdir(f'{DOWNLOAD_DIR}{self.uid}/{name}'):
-                msg += f'\n<b>SubFolders: </b>{folders}'
-                msg += f'\n<b>Files: </b>{files}'
-            msg += f'\n\n<b>cc: </b>{self.tag}'
-            buttons = ButtonMaker()
+                msg += f'\n<b>🗂 SubFolders: </b>{folders}'
+                msg += f'\n<b>📑 Files: </b>{files}'
             link = short_url(link)
             buttons.buildbutton("☁️ Drive Link", link)
             LOGGER.info(f'Done Uploading {name}')
             if INDEX_URL is not None:
-                url_path = rutils.quote(f'{name}')
+                url_path = requests.utils.quote(f'{name}')
                 share_url = f'{INDEX_URL}/{url_path}'
                 if ospath.isdir(f'{DOWNLOAD_DIR}/{self.uid}/{name}'):
                     share_url += '/'
@@ -299,126 +342,109 @@ class MirrorListener:
                 buttons.buildbutton(f"{BUTTON_FOUR_NAME}", f"{BUTTON_FOUR_URL}")
             if BUTTON_FIVE_NAME is not None and BUTTON_FIVE_URL is not None:
                 buttons.buildbutton(f"{BUTTON_FIVE_NAME}", f"{BUTTON_FIVE_URL}")
-            if BUTTON_SIX_NAME is not None and BUTTON_SIX_URL is not None:
-                buttons.buildbutton(f"{BUTTON_SIX_NAME}", f"{BUTTON_SIX_URL}")
+            '''
             if SOURCE_LINK is True:
-                try:
-                    mesg = message_args[1]
-                    if is_magnet(mesg):
-                        link = telegraph.create_page(
-                            title='Helios-Mirror Source Link',
-                            content=mesg,
-                        )["path"]
-                        buttons.buildbutton(f"🔗 Source Link", f"https://telegra.ph/{link}")
-                    elif is_url(mesg):
-                        source_link = mesg
-                        if source_link.startswith(("|", "pswd: ")):
-                            pass
-                        else:
-                            buttons.buildbutton(f"🔗 Source Link", source_link)
-                    else:
-                        pass
-                except Exception as e:
-                    LOGGER.warning(e)
-                    pass
-            if reply_to is not None:
-                try:
-                    reply_text = reply_to.text
-                    if is_url(reply_text):
-                        source_link = reply_text.strip()
-                        if is_magnet(source_link):
-                            link = telegraph.create_page(
-                                title='Helios-Mirror Source Link',
-                                content=source_link,
-                            )["path"]
-                            buttons.buildbutton(f"🔗 Source Link", f"https://telegra.ph/{link}")
-                        else:
-                            buttons.buildbutton(f"🔗 Source Link", source_link)
-                except Exception as e:
-                    LOGGER.warning(e)
-                    pass
-            else:
-                pass
-            uploadmsg = sendMarkup(msg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
-            Thread(target=auto_delete_upload_message, args=(bot, self.message, uploadmsg)).start()
+                buttons.buildbutton(f"🔗 Source Link", link)
+            '''
+            uploader = f'\n\n<b>#Uploaded By: </b>{self.tag}\n'
             if MIRROR_LOGS:
                 try:
-                    for chatid in MIRROR_LOGS:
-                        bot.sendMessage(chat_id=chatid, text=msg,
-                                        reply_markup=InlineKeyboardMarkup(buttons.build_menu(2)),
-                                        parse_mode=ParseMode.HTML)
-                except Exception as e:
-                    LOGGER.warning(e)
-            if BOT_PM and self.message.chat.type != 'private':
-                try:
-                    bot.sendMessage(chat_id=self.user_id, text=msg,
+                    for i in MIRROR_LOGS:
+                        bot.sendMessage(chat_id=i, text=msg + uploader,
                                     reply_markup=InlineKeyboardMarkup(buttons.build_menu(2)),
                                     parse_mode=ParseMode.HTML)
                 except Exception as e:
                     LOGGER.warning(e)
-                    return
+
+                if BOT_PM and self.message.chat.type != 'private':
+                    try:
+                        bot.sendMessage(chat_id=self.user_id, text=msg,
+                                    reply_markup=InlineKeyboardMarkup(buttons.build_menu(2)),
+                                    parse_mode=ParseMode.HTML)
+                    except Exception as e:
+                        LOGGER.warning(e)
+                        return
             if self.isQbit and QB_SEED and not self.extract:
                 if self.isZip:
                     try:
                         osremove(f'{DOWNLOAD_DIR}{self.uid}/{name}')
                     except:
                         pass
+                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.update, InlineKeyboardMarkup(buttons.build_menu(2)))
+                Thread(target=auto_delete_upload_message, args=(bot, self.message, msg)).start()
                 return
-        clean_download(f'{DOWNLOAD_DIR}{self.uid}')
-        with download_dict_lock:
-            try:
-                del download_dict[self.uid]
-            except Exception as e:
-                LOGGER.error(str(e))
-            count = len(download_dict)
-        if count == 0:
-            self.clean()
-        else:
-            update_all_messages()
+            else:
+                try:
+                    clean_download(f'{DOWNLOAD_DIR}{self.uid}')
+                except FileNotFoundError:
+                    pass
+                with download_dict_lock:
+                    del download_dict[self.uid]
+                    count = len(download_dict)
+                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.update, InlineKeyboardMarkup(buttons.build_menu(2)))
+                if count == 0:
+                    self.clean()
+                else:
+                    update_all_messages()
+                Thread(target=auto_delete_upload_message, args=(bot, self.message, msg)).start()
+
     def onUploadError(self, error):
         reply_to = self.message.reply_to_message
         if reply_to is not None:
-            try:
-                reply_to.delete()
-            except Exception as error:
-                LOGGER.warning(f"ewww {error}")
+            reply_to.delete()
         e_str = error.replace('<', '').replace('>', '')
-        clean_download(f'{DOWNLOAD_DIR}{self.uid}')
         with download_dict_lock:
             try:
-                del download_dict[self.uid]
-            except Exception as e:
-                LOGGER.error(str(e))
+                clean_download(download_dict[self.uid].path())
+            except FileNotFoundError:
+                pass
+            del download_dict[self.message.message_id]
             count = len(download_dict)
-        sendMessage(f"{self.tag} {e_str}", self.bot, self.message)
+        msg = sendMessage(f"{self.tag} {e_str}", self.bot, self.update)
         if count == 0:
             self.clean()
         else:
             update_all_messages()
-
         if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
             DbManger().rm_complete_task(self.message.link)
 
-def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
-    buttons = ButtonMaker()
-    if BOT_PM and message.chat.type != 'private':
+def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
+    uname = f'<a href="tg://user?id={update.message.from_user.id}">{update.message.from_user.first_name}</a>'
+    if FSUB:
         try:
-            msg1 = f'Added your Requested link to Download\n'
-            send = bot.sendMessage(message.from_user.id, text=msg1)
+            user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", update.message.from_user.id)
+            LOGGER.error(user.status)
+            if user.status not in ('member', 'creator', 'administrator'):
+                buttons = ButtonMaker()
+                buttons.buildbutton("Click Here To Join Updates Channel", f"https://t.me/{CHANNEL_USERNAME}")
+                reply_markup = InlineKeyboardMarkup(buttons.build_menu(1))
+                message = sendMarkup(
+                    str(f"<b>Dear {uname}️ You haven't join our Updates Channel yet.</b>\n\nKindly Join @{CHANNEL_USERNAME} To Use Bots. "),
+                    bot, update, reply_markup)
+                Thread(target=auto_delete_upload_message, args=(bot, update.message, message)).start()
+                return
+        except:
+            pass
+    if BOT_PM:
+        try:
+            msg1 = f'Added your Requested link to Download ☺️\n'
+            send = bot.sendMessage(update.message.from_user.id, text=msg1, )
             send.delete()
         except Exception as e:
             LOGGER.warning(e)
             bot_d = bot.get_me()
             b_uname = bot_d.username
-            uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+            uname = f'<a href="tg://user?id={update.message.from_user.id}">{update.message.from_user.first_name}</a>'
+            channel = CHANNEL_USERNAME
             botstart = f"http://t.me/{b_uname}"
-            buttons.buildbutton("Click Here to Start Me", f"{botstart}")
-            startwarn = f"Dear {uname},\n\n<b>I found that you haven't started me in PM (Private Chat) yet.</b>\n\n" \
-                        f"From now on i will give link and leeched files in PM and log channel only"
-            message = sendMarkup(startwarn, bot, message, InlineKeyboardMarkup(buttons.build_menu(2)))
-            Thread(target=auto_delete_message, args=(bot, message, message)).start()
+            keyboard = [
+                [InlineKeyboardButton("Click Here to Start Me 😜", url=f"{botstart}")]]
+            message = sendMarkup(
+                f"Dear {uname},\n\n<b>I found that you haven't started me in PM (Private Chat) yet 😁.</b>\n\nFrom now on i will give link and leeched files in PM and log channel only 🤫 (Join Log Channel).",
+                bot, update, reply_markup=InlineKeyboardMarkup(keyboard))
+            Thread(target=auto_delete_message, args=(bot, update.message, message)).start()
             return
-    mesg = message.text.split('\n')
+    mesg = update.message.text.split('\n')
     message_args = mesg[0].split(' ', maxsplit=1)
     name_args = mesg[0].split('|', maxsplit=1)
     qbitsel = False
@@ -442,18 +468,18 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
         name = name.strip()
     except:
         name = ''
-    link = re_split(r"pswd:| \|", link)[0]
+    link = resplit(r"pswd:| \|", link)[0]
     link = link.strip()
     pswdMsg = mesg[0].split(' pswd: ')
     if len(pswdMsg) > 1:
         pswd = pswdMsg[1]
 
-    if message.from_user.username:
-        tag = f"@{message.from_user.username}"
+    if update.message.from_user.username:
+        tag = f"@{update.message.from_user.username}"
     else:
-        tag = message.from_user.mention_html(message.from_user.first_name)
+        tag = update.message.from_user.mention_html(update.message.from_user.first_name)
 
-    reply_to = message.reply_to_message
+    reply_to = update.message.reply_to_message
     if reply_to is not None:
         file = None
         media_array = [reply_to.document, reply_to.video, reply_to.audio]
@@ -468,45 +494,57 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
             else:
                 tag = reply_to.from_user.mention_html(reply_to.from_user.first_name)
 
-        if not is_url(link) and not is_magnet(link) or len(link) == 0:
+        if (
+            not is_url(link)
+            and not is_magnet(link)
+            or len(link) == 0
+        ):
+
             if file is None:
                 reply_text = reply_to.text
                 if is_url(reply_text) or is_magnet(reply_text):
                     link = reply_text.strip()
-            elif file.mime_type != "application/x-bittorrent" and not isQbit:
-                listener = MirrorListener(bot, message, isZip, extract, isQbit, isLeech, pswd, tag)
-                Thread(target=TelegramDownloadHelper(listener).add_download, args=(message, f'{DOWNLOAD_DIR}{listener.uid}/', name)).start()
+            elif isQbit:
+                file_name = str(time()).replace(".", "") + ".torrent"
+                link = file.get_file().download(custom_path=file_name)
+            elif file.mime_type != "application/x-bittorrent":
+                listener = MirrorListener(bot, update, isZip, extract, isQbit, isLeech, pswd, tag)
+                tg_downloader = TelegramDownloadHelper(listener)
+                ms = update.message
+                tg_downloader.add_download(ms, f'{DOWNLOAD_DIR}{listener.uid}/', name)
                 if multi > 1:
-                    sleep(4)
+                    sleep(3)
                     nextmsg = type('nextmsg', (object, ), {'chat_id': message.chat_id, 'message_id': message.reply_to_message.message_id + 1})
                     nextmsg = sendMessage(message_args[0], bot, nextmsg)
                     nextmsg.from_user.id = message.from_user.id
                     multi -= 1
-                    sleep(4)
+                    sleep(3)
                     Thread(target=_mirror, args=(bot, nextmsg, isZip, extract, isQbit, isLeech, pswd, multi)).start()
                 return
             else:
                 link = file.get_file().file_path
 
+    if len(mesg) > 1:
+        try:
+            ussr = quote(mesg[1], safe='')
+            pssw = quote(mesg[2], safe='')
+            link = link.split("://", maxsplit=1)
+            link = f'{link[0]}://{ussr}:{pssw}@{link[1]}'
+        except:
+            pass
+
     if not is_url(link) and not is_magnet(link) and not ospath.exists(link):
-        help_msg = "<b>Send link along with command line:</b>"
-        help_msg += "\n<code>/command</code> {link} |newname pswd: xx [zip/unzip]"
-        help_msg += "\n\n<b>By replying to link or file:</b>"
-        help_msg += "\n<code>/command</code> |newname pswd: xx [zip/unzip]"
-        help_msg += "\n\n<b>Direct link authorization:</b>"
-        help_msg += "\n<code>/command</code> {link} |newname pswd: xx\nusername\npassword"
-        help_msg += "\n\n<b>Qbittorrent selection:</b>"
-        help_msg += "\n<code>/qbcommand</code> <b>s</b> {link} or by replying to {file/link}"
-        help_msg += "\n\n<b>Multi links only by replying to first link or file:</b>"
-        help_msg += "\n<code>/command</code> 10(number of links/files)"
-        return sendMessage(help_msg, bot, message)
+        help_msg = "❗️ Send link along with command line"
+        help_msg += "\nor reply to link or file"
+        msg = sendMessage(help_msg, bot, update)
+        Thread(target=auto_delete_message, args=(bot, update.message, msg)).start()
 
     LOGGER.info(link)
 
     if not is_mega_link(link) and not isQbit and not is_magnet(link) \
         and not is_gdrive_link(link) and not link.endswith('.torrent'):
         content_type = get_content_type(link)
-        if content_type is None or re_match(r'text/html|text/plain', content_type):
+        if content_type is None or match(r'text/html|text/plain', content_type):
             try:
                 is_gdtot = is_gdtot_link(link)
                 link = direct_link_generator(link)
@@ -514,15 +552,16 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
             except DirectDownloadLinkException as e:
                 LOGGER.info(str(e))
                 if str(e).startswith('ERROR:'):
-                    return sendMessage(str(e), bot, message)
+                    return sendMessage(str(e), bot, update)
+    """              
     elif isQbit and not is_magnet(link) and not ospath.exists(link):
-        if link.endswith('.torrent') or "https://api.telegram.org/file/" in link:
+        if link.endswith('.torrent'):
             content_type = None
         else:
             content_type = get_content_type(link)
-        if content_type is None or re_match(r'application/x-bittorrent|application/octet-stream', content_type):
+        if content_type is None or match(r'application/x-bittorrent|application/octet-stream', content_type):
             try:
-                resp = rget(link, timeout=10, headers = {'user-agent': 'Wget/1.12'})
+                resp = requests.get(link, timeout=10, headers = {'user-agent': 'Wget/1.12'})
                 if resp.status_code == 200:
                     file_name = str(time()).replace(".", "") + ".torrent"
                     with open(file_name, "wb") as t:
@@ -536,30 +575,39 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
                     link = error.split("'")[1]
                 else:
                     LOGGER.error(str(e))
-                    return sendMessage(tag + " " + error, bot, message)
+                    return sendMessage(tag + " " + error, bot, update)
+        
         else:
             msg = "Qb commands for torrents only. if you are trying to dowload torrent then report."
-            return sendMessage(msg, bot, message)
+            return sendMessage(msg, bot, update)
+            """
 
-
-    listener = MirrorListener(bot, message, isZip, extract, isQbit, isLeech, pswd, tag)
+    listener = MirrorListener(bot, update, isZip, extract, isQbit, isLeech, pswd, tag)
 
     if is_gdrive_link(link):
         if not isZip and not extract and not isLeech:
             gmsg = f"Use /{BotCommands.CloneCommand} to clone Google Drive file/folder\n\n"
             gmsg += f"Use /{BotCommands.ZipMirrorCommand} to make zip of Google Drive folder\n\n"
             gmsg += f"Use /{BotCommands.UnzipMirrorCommand} to extracts Google Drive archive file"
-            sendMessage(gmsg, bot, message)
-        else:
-            Thread(target=add_gd_download, args=(link, listener, is_gdtot)).start()
+            return sendMessage(gmsg, bot, update)
+        Thread(target=add_gd_download, args=(link, listener, is_gdtot)).start()
+
     elif is_mega_link(link):
-        if MEGAREST:
-            mega_dl = MegaDownloadeHelper(listener).add_download
+        if MEGA_API_KEY is not None:
+            Thread(target=MegaDownloader(listener).add_download, args=(link, f'{DOWNLOAD_DIR}{listener.uid}/')).start()
         else:
-            mega_dl = add_mega_download
-        Thread(target=mega_dl, args=(link, f'{DOWNLOAD_DIR}{listener.uid}/', listener)).start()
-    elif isQbit and (is_magnet(link) or ospath.exists(link)):
-        Thread(target=QbDownloader(listener).add_qb_torrent, args=(link, f'{DOWNLOAD_DIR}{listener.uid}', qbitsel)).start()
+            sendMessage('MEGA_API_KEY not Provided!', bot, update)
+            '''
+            if link_type == "folder":
+                sendMessage(f"{uname}, <b>Your Requested MEGA Folder Has Been Added To</b> /{BotCommands.StatusCommand}", bot, update)
+            else:
+                sendMessage(f"{uname}, <b>Your Requested MEGA File Has Been Added To</b> /{BotCommands.StatusCommand}", bot, update)
+                '''
+    elif isQbit:
+    #elif isQbit and (is_magnet(link) or ospath.exists(link)):
+        #Thread(target=QbDownloader(listener).add_qb_torrent, args=(link, f'{DOWNLOAD_DIR}{listener.uid}', qbitsel)).start()
+        Thread(target=add_qb_torrent, args=(link, f'{DOWNLOAD_DIR}{listener.uid}', listener, qbitsel)).start()
+
     else:
         if len(mesg) > 1:
             try:
@@ -577,53 +625,50 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
         Thread(target=add_aria2c_download, args=(link, f'{DOWNLOAD_DIR}{listener.uid}', listener, name, auth)).start()
 
     if multi > 1:
-        sleep(4)
+        sleep(3)
         nextmsg = type('nextmsg', (object, ), {'chat_id': message.chat_id, 'message_id': message.reply_to_message.message_id + 1})
-        msg = message_args[0]
-        if len(mesg) > 2:
-            msg += '\n' + mesg[1] + '\n' + mesg[2]
-        nextmsg = sendMessage(msg, bot, nextmsg)
+        nextmsg = sendMessage(message_args[0], bot, nextmsg)
         nextmsg.from_user.id = message.from_user.id
         multi -= 1
-        sleep(4)
+        sleep(3)
         Thread(target=_mirror, args=(bot, nextmsg, isZip, extract, isQbit, isLeech, pswd, multi)).start()
 
 
 def mirror(update, context):
-    _mirror(context.bot, update.message)
+    _mirror(context.bot, update)
 
 def unzip_mirror(update, context):
-    _mirror(context.bot, update.message, extract=True)
+    _mirror(context.bot, update, extract=True)
 
 def zip_mirror(update, context):
-    _mirror(context.bot, update.message, True)
+    _mirror(context.bot, update, True)
 
 def qb_mirror(update, context):
-    _mirror(context.bot, update.message, isQbit=True)
+    _mirror(context.bot, update, isQbit=True)
 
 def qb_unzip_mirror(update, context):
-    _mirror(context.bot, update.message, extract=True, isQbit=True)
+    _mirror(context.bot, update, extract=True, isQbit=True)
 
 def qb_zip_mirror(update, context):
-    _mirror(context.bot, update.message, True, isQbit=True)
+    _mirror(context.bot, update, True, isQbit=True)
 
 def leech(update, context):
-    _mirror(context.bot, update.message, isLeech=True)
+    _mirror(context.bot, update, isLeech=True)
 
 def unzip_leech(update, context):
-    _mirror(context.bot, update.message, extract=True, isLeech=True)
+    _mirror(context.bot, update, extract=True, isLeech=True)
 
 def zip_leech(update, context):
-    _mirror(context.bot, update.message, True, isLeech=True)
+    _mirror(context.bot, update, True, isLeech=True)
 
 def qb_leech(update, context):
-    _mirror(context.bot, update.message, isQbit=True, isLeech=True)
+    _mirror(context.bot, update, isQbit=True, isLeech=True)
 
 def qb_unzip_leech(update, context):
-    _mirror(context.bot, update.message, extract=True, isQbit=True, isLeech=True)
+    _mirror(context.bot, update, extract=True, isQbit=True, isLeech=True)
 
 def qb_zip_leech(update, context):
-    _mirror(context.bot, update.message, True, isQbit=True, isLeech=True)
+    _mirror(context.bot, update, True, isQbit=True, isLeech=True)
 
 mirror_handler = CommandHandler(BotCommands.MirrorCommand, mirror,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
@@ -637,19 +682,32 @@ qb_unzip_mirror_handler = CommandHandler(BotCommands.QbUnzipMirrorCommand, qb_un
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
 qb_zip_mirror_handler = CommandHandler(BotCommands.QbZipMirrorCommand, qb_zip_mirror,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-leech_handler = CommandHandler(BotCommands.LeechCommand, leech,
+if LEECH_ENABLED:
+    leech_handler = CommandHandler(BotCommands.LeechCommand, leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-unzip_leech_handler = CommandHandler(BotCommands.UnzipLeechCommand, unzip_leech,
+    unzip_leech_handler = CommandHandler(BotCommands.UnzipLeechCommand, unzip_leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-zip_leech_handler = CommandHandler(BotCommands.ZipLeechCommand, zip_leech,
+    zip_leech_handler = CommandHandler(BotCommands.ZipLeechCommand, zip_leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-qb_leech_handler = CommandHandler(BotCommands.QbLeechCommand, qb_leech,
+    qb_leech_handler = CommandHandler(BotCommands.QbLeechCommand, qb_leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-qb_unzip_leech_handler = CommandHandler(BotCommands.QbUnzipLeechCommand, qb_unzip_leech,
+    qb_unzip_leech_handler = CommandHandler(BotCommands.QbUnzipLeechCommand, qb_unzip_leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-qb_zip_leech_handler = CommandHandler(BotCommands.QbZipLeechCommand, qb_zip_leech,
+    qb_zip_leech_handler = CommandHandler(BotCommands.QbZipLeechCommand, qb_zip_leech,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
-
+else:
+    leech_handler = CommandHandler(BotCommands.LeechCommand, leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
+    unzip_leech_handler = CommandHandler(BotCommands.UnzipLeechCommand, unzip_leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
+    zip_leech_handler = CommandHandler(BotCommands.ZipLeechCommand, zip_leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
+    qb_leech_handler = CommandHandler(BotCommands.QbLeechCommand, qb_leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
+    qb_unzip_leech_handler = CommandHandler(BotCommands.QbUnzipLeechCommand, qb_unzip_leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
+    qb_zip_leech_handler = CommandHandler(BotCommands.QbZipLeechCommand, qb_zip_leech,
+                                filters=CustomFilters.owner_filter | CustomFilters.authorized_user, run_async=True)
 dispatcher.add_handler(mirror_handler)
 dispatcher.add_handler(unzip_mirror_handler)
 dispatcher.add_handler(zip_mirror_handler)
@@ -662,3 +720,4 @@ dispatcher.add_handler(zip_leech_handler)
 dispatcher.add_handler(qb_leech_handler)
 dispatcher.add_handler(qb_unzip_leech_handler)
 dispatcher.add_handler(qb_zip_leech_handler)
+
