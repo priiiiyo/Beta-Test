@@ -469,7 +469,7 @@ def _mirror(bot, update, isZip=False, extract=False, isQbit=False, isLeech=False
         name = name.strip()
     except:
         name = ''
-    link = resplit(r"pswd:| \|", link)[0]
+    link = re_split(r"pswd:| \|", link)[0]
     link = link.strip()
     pswdMsg = mesg[0].split(' pswd: ')
     if len(pswdMsg) > 1:
