@@ -607,7 +607,7 @@ except KeyError:
     APPDRIVE_EMAIL = None
     APPDRIVE_PASS = None
 
- try:
+try:
     FSUB = getConfig('FSUB')
     FSUB = FSUB.lower() == 'true'
 except KeyError:
