@@ -268,7 +268,7 @@ class MirrorListener:
                 msg += f'\n<b>❗ Corrupted Files: </b>{typ}'
             msg += f'\n<b>#Leeched By: </b>{self.tag}\n\n'
             if BOT_PM:
-                message = sendMessage(msg + pmwarn + warnmsg, self.bot, self.update)
+                message = sendMessage(msg + pmwarn + warnmsg, self.bot, self.message)
                 Thread(target=auto_delete_upload_message, args=(bot, self.message, message)).start()
 
             if LEECH_LOG:
@@ -302,11 +302,11 @@ class MirrorListener:
                     link = f"https://t.me/c/{chat_id}/{msg_id}"
                     fmsg += f"{index}. <a href='{link}'>{item}</a>\n"
                     if len(fmsg.encode('utf-8') + msg.encode('utf-8')) > 4000:
-                        sendMessage(msg + fmsg + logwarn, self.bot, self.update)
+                        sendMessage(msg + fmsg + logwarn, self.bot, self.message)
                         sleep(1.5)
                         fmsg = ''
                 if fmsg != '':
-                    sendMessage(msg + fmsg, self.bot, self.update)
+                    sendMessage(msg + fmsg, self.bot, self.message)
 
             try:
                 clean_download(f'{DOWNLOAD_DIR}{self.uid}')
@@ -412,10 +412,10 @@ class MirrorListener:
             DbManger().rm_complete_task(self.message.link)
 
 def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
-    uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+    uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
     if FSUB:
         try:
-            user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", update.message.from_user.id)
+            user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", self.message.from_user.id)
             LOGGER.error(user.status)
             if user.status not in ('member', 'creator', 'administrator'):
                 buttons = ButtonMaker()
@@ -428,16 +428,17 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
                 return
         except:
             pass
+
     if BOT_PM:
         try:
             msg1 = f'Added your Requested link to Download ☺️\n'
-            send = bot.sendMessage(message.from_user.id, text=msg1, )
+            send = bot.sendMessage(self.message.from_user.id, text=msg1, )
             send.delete()
         except Exception as e:
             LOGGER.warning(e)
             bot_d = bot.get_me()
             b_uname = bot_d.username
-            uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+            uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
             channel = CHANNEL_USERNAME
             botstart = f"http://t.me/{b_uname}"
             keyboard = [
@@ -519,7 +520,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
                     sleep(3)
                     nextmsg = type('nextmsg', (object, ), {'chat_id': message.chat_id, 'message_id': message.reply_to_message.message_id + 1})
                     nextmsg = sendMessage(message_args[0], bot, nextmsg)
-                    nextmsg.from_user.id = message.from_user.id
+                    nextmsg.from_user.id = self.message.from_user.id
                     multi -= 1
                     sleep(3)
                     Thread(target=_mirror, args=(bot, nextmsg, isZip, extract, isQbit, isLeech, pswd, multi)).start()
