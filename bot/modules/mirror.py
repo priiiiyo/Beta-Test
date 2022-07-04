@@ -635,41 +635,41 @@ def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeec
         Thread(target=_mirror, args=(bot, nextmsg, isZip, extract, isQbit, isLeech, pswd, multi)).start()
 
 
-def mirror(self, message, context):
-    _mirror(context.bot, self.message)
+def mirror(update, context):
+    _mirror(context.bot, update.message)
 
-def unzip_mirror(self, message, context):
-    _mirror(context.bot, self.message, extract=True)
+def unzip_mirror(update, context):
+    _mirror(context.bot, update.message, extract=True)
 
-def zip_mirror(self, message, context):
-    _mirror(context.bot, self.message, True)
+def zip_mirror(update, context):
+    _mirror(context.bot, update.message, True)
 
-def qb_mirror(self, message, context):
-    _mirror(context.bot, self.message, isQbit=True)
+def qb_mirror(update, context):
+    _mirror(context.bot, update.message, isQbit=True)
 
-def qb_unzip_mirror(self, message, context):
-    _mirror(context.bot, self.message, extract=True, isQbit=True)
+def qb_unzip_mirror(update, context):
+    _mirror(context.bot, update.message, extract=True, isQbit=True)
 
-def qb_zip_mirror(self, message, context):
-    _mirror(context.bot, self.message, True, isQbit=True)
+def qb_zip_mirror(update, context):
+    _mirror(context.bot, update.message, True, isQbit=True)
 
-def leech(self, message, context):
-    _mirror(context.bot, self.message, isLeech=True)
+def leech(update, context):
+    _mirror(context.bot, update.message, isLeech=True)
 
-def unzip_leech(self, message, context):
-    _mirror(context.bot, self.message, extract=True, isLeech=True)
+def unzip_leech(update, context):
+    _mirror(context.bot, update.message, extract=True, isLeech=True)
 
-def zip_leech(self, message, context):
-    _mirror(context.bot, self.message, True, isLeech=True)
+def zip_leech(update, context):
+    _mirror(context.bot, update.message, True, isLeech=True)
 
-def qb_leech(self, message, context):
-    _mirror(context.bot, self.message, isQbit=True, isLeech=True)
+def qb_leech(update, context):
+    _mirror(context.bot, update.message, isQbit=True, isLeech=True)
 
-def qb_unzip_leech(self, message, context):
-    _mirror(context.bot, self.message, extract=True, isQbit=True, isLeech=True)
+def qb_unzip_leech(update, context):
+    _mirror(context.bot, update.message, extract=True, isQbit=True, isLeech=True)
 
-def qb_zip_leech(self, message, context):
-    _mirror(context.bot, self.message, True, isQbit=True, isLeech=True)
+def qb_zip_leech(update, context):
+    _mirror(context.bot, update.message, True, isQbit=True, isLeech=True)
 
 mirror_handler = CommandHandler(BotCommands.MirrorCommand, mirror,
                                 filters=CustomFilters.authorized_chat | CustomFilters.authorized_user, run_async=True)
