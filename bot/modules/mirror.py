@@ -209,13 +209,13 @@ class MirrorListener:
         if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
             DbManger().rm_complete_task(self.message.link)
         msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n<b>📦 Size: </b>{size}"
-        uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
+        uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         chat_id = str(LEECH_LOG)[5:][:-1]
         buttons = ButtonMaker()
         # this is inspired by def mirror to get the link from message
         mesg = self.message.text.split('\n')
         message_args = mesg[0].split(' ', maxsplit=1)
-        reply_to = self.message.reply_to_message
+        reply_to = message.reply_to_message
         slmsg = f"Added by: {uname} \n👥 User ID: <code>{self.user_id}</code>\n\n"
         if LINK_LOGS:
             try:
@@ -268,7 +268,7 @@ class MirrorListener:
                 msg += f'\n<b>❗ Corrupted Files: </b>{typ}'
             msg += f'\n<b>#Leeched By: </b>{self.tag}\n\n'
             if BOT_PM:
-                message = sendMessage(msg + pmwarn + warnmsg, self.bot, self.message)
+                message = sendMessage(msg + pmwarn + warnmsg, self.bot, self.update)
                 Thread(target=auto_delete_upload_message, args=(bot, self.message, message)).start()
 
             if LEECH_LOG:
@@ -373,7 +373,7 @@ class MirrorListener:
                         osremove(f'{DOWNLOAD_DIR}{self.uid}/{name}')
                     except:
                         pass
-                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.update, InlineKeyboardMarkup(buttons.build_menu(2)))
+                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
                 Thread(target=auto_delete_upload_message, args=(bot, self.message, msg)).start()
                 return
             else:
@@ -384,7 +384,7 @@ class MirrorListener:
                 with download_dict_lock:
                     del download_dict[self.uid]
                     count = len(download_dict)
-                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.update, InlineKeyboardMarkup(buttons.build_menu(2)))
+                msg = sendMarkup(msg + uploader + pmwarn_mirror + warnmsg, self.bot, self.message, InlineKeyboardMarkup(buttons.build_menu(2)))
                 if count == 0:
                     self.clean()
                 else:
@@ -403,7 +403,7 @@ class MirrorListener:
                 pass
             del download_dict[self.message.message_id]
             count = len(download_dict)
-        msg = sendMessage(f"{self.tag} {e_str}", self.bot, self.update)
+        msg = sendMessage(f"{self.tag} {e_str}", self.bot, self.message)
         if count == 0:
             self.clean()
         else:
@@ -411,11 +411,11 @@ class MirrorListener:
         if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
             DbManger().rm_complete_task(self.message.link)
 
-def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
-    uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
+def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
+    uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
     if FSUB:
         try:
-            user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", self.message.from_user.id)
+            user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", update.message.from_user.id)
             LOGGER.error(user.status)
             if user.status not in ('member', 'creator', 'administrator'):
                 buttons = ButtonMaker()
@@ -432,13 +432,13 @@ def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeec
     if BOT_PM:
         try:
             msg1 = f'Added your Requested link to Download ☺️\n'
-            send = bot.sendMessage(self.message.from_user.id, text=msg1, )
+            send = bot.sendMessage(message.from_user.id, text=msg1, )
             send.delete()
         except Exception as e:
             LOGGER.warning(e)
             bot_d = bot.get_me()
             b_uname = bot_d.username
-            uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
+            uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
             channel = CHANNEL_USERNAME
             botstart = f"http://t.me/{b_uname}"
             keyboard = [
@@ -481,7 +481,7 @@ def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeec
     if message.from_user.username:
         tag = f"@{message.from_user.username}"
     else:
-        tag = message.from_user.mention_html(self.message.from_user.first_name)
+        tag = message.from_user.mention_html(message.from_user.first_name)
 
     reply_to = message.reply_to_message
     if reply_to is not None:
@@ -520,7 +520,7 @@ def _mirror(self, bot, message, isZip=False, extract=False, isQbit=False, isLeec
                     sleep(3)
                     nextmsg = type('nextmsg', (object, ), {'chat_id': message.chat_id, 'message_id': message.reply_to_message.message_id + 1})
                     nextmsg = sendMessage(message_args[0], bot, nextmsg)
-                    nextmsg.from_user.id = self.message.from_user.id
+                    nextmsg.from_user.id = message.from_user.id
                     multi -= 1
                     sleep(3)
                     Thread(target=_mirror, args=(bot, nextmsg, isZip, extract, isQbit, isLeech, pswd, multi)).start()
@@ -724,4 +724,3 @@ dispatcher.add_handler(zip_leech_handler)
 dispatcher.add_handler(qb_leech_handler)
 dispatcher.add_handler(qb_unzip_leech_handler)
 dispatcher.add_handler(qb_zip_leech_handler)
-
