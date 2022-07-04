@@ -511,7 +511,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
             elif file.mime_type != "application/x-bittorrent":
                 listener = MirrorListener(bot, message, isZip, extract, isQbit, isLeech, pswd, tag)
                 tg_downloader = TelegramDownloadHelper(listener)
-                ms = self.message
+                ms = message
                 tg_downloader.add_download(ms, f'{DOWNLOAD_DIR}{listener.uid}/', name)
                 if multi > 1:
                     sleep(3)
