@@ -665,7 +665,7 @@ def zip_leech(self, message, context):
 def qb_leech(self, message, context):
     _mirror(context.bot, self.message, isQbit=True, isLeech=True)
 
-def qb_unzip_leech(Self mess Age , context):
+def qb_unzip_leech(self, message, context):
     _mirror(context.bot, self.message, extract=True, isQbit=True, isLeech=True)
 
 def qb_zip_leech(self.message, context):
