@@ -409,7 +409,7 @@ class MirrorListener:
         if not self.isPrivate and INCOMPLETE_TASK_NOTIFIER and DB_URI is not None:
             DbManger().rm_complete_task(self.message.link)
 
-def _mirror(self, bot, update, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
+def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
     uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
     if FSUB:
         try:
@@ -429,7 +429,7 @@ def _mirror(self, bot, update, isZip=False, extract=False, isQbit=False, isLeech
     if BOT_PM:
         try:
             msg1 = f'Added your Requested link to Download ☺️\n'
-            send = bot.sendMessage(update.message.from_user.id, text=msg1, )
+            send = bot.sendMessage(self.message.from_user.id, text=msg1, )
             send.delete()
         except Exception as e:
             LOGGER.warning(e)
@@ -442,7 +442,7 @@ def _mirror(self, bot, update, isZip=False, extract=False, isQbit=False, isLeech
                 [InlineKeyboardButton("Click Here to Start Me 😜", url=f"{botstart}")]]
             message = sendMarkup(
                 f"Dear {uname},\n\n<b>I found that you haven't started me in PM (Private Chat) yet 😁.</b>\n\nFrom now on i will give link and leeched files in PM and log channel only 🤫 (Join Log Channel).",
-                bot, update, reply_markup=InlineKeyboardMarkup(keyboard))
+                bot, message, reply_markup=InlineKeyboardMarkup(keyboard))
             Thread(target=auto_delete_message, args=(bot, self.message, message)).start()
             return
     mesg = self.message.text.split('\n')
@@ -475,12 +475,12 @@ def _mirror(self, bot, update, isZip=False, extract=False, isQbit=False, isLeech
     if len(pswdMsg) > 1:
         pswd = pswdMsg[1]
 
-    if self.message.from_user.username:
-        tag = f"@{self.message.from_user.username}"
+    if message.from_user.username:
+        tag = f"@{message.from_user.username}"
     else:
-        tag = self.message.from_user.mention_html(self.message.from_user.first_name)
+        tag = message.from_user.mention_html(self.message.from_user.first_name)
 
-    reply_to = self.message.reply_to_message
+    reply_to = message.reply_to_message
     if reply_to is not None:
         file = None
         media_array = [reply_to.document, reply_to.video, reply_to.audio]
@@ -538,7 +538,7 @@ def _mirror(self, bot, update, isZip=False, extract=False, isQbit=False, isLeech
         help_msg = "❗️ Send link along with command line"
         help_msg += "\nor reply to link or file"
         msg = sendMessage(help_msg, bot, message)
-        Thread(target=auto_delete_message, args=(bot, self.message, msg)).start()
+        Thread(target=auto_delete_message, args=(bot, message, msg)).start()
 
     LOGGER.info(link)
 
