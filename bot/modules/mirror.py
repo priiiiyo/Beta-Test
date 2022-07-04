@@ -410,7 +410,7 @@ class MirrorListener:
             DbManger().rm_complete_task(self.message.link)
 
 def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=False, pswd=None, multi=0):
-    uname = f'<a href="tg://user?id={self.message.from_user.id}">{self.message.from_user.first_name}</a>'
+    uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
     if FSUB:
         try:
             user = bot.get_chat_member(f"{FSUB_CHANNEL_ID}", update.message.from_user.id)
@@ -429,13 +429,13 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
     if BOT_PM:
         try:
             msg1 = f'Added your Requested link to Download ☺️\n'
-            send = bot.sendMessage(self.message.from_user.id, text=msg1, )
+            send = bot.sendMessage(message.from_user.id, text=msg1, )
             send.delete()
         except Exception as e:
             LOGGER.warning(e)
             bot_d = bot.get_me()
             b_uname = bot_d.username
-            uname = f'<a href="tg://user?id={update.message.from_user.id}">{update.message.from_user.first_name}</a>'
+            uname = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
             channel = CHANNEL_USERNAME
             botstart = f"http://t.me/{b_uname}"
             keyboard = [
@@ -445,7 +445,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
                 bot, message, reply_markup=InlineKeyboardMarkup(keyboard))
             Thread(target=auto_delete_message, args=(bot, self.message, message)).start()
             return
-    mesg = self.message.text.split('\n')
+    mesg = message.text.split('\n')
     message_args = mesg[0].split(' ', maxsplit=1)
     name_args = mesg[0].split('|', maxsplit=1)
     qbitsel = False
