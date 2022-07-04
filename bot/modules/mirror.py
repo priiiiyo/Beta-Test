@@ -1,5 +1,5 @@
 from base64 import b64encode
-from requests import utils as rutils, get as rget
+from requests import utils as rutils, utils as quote, get as rget
 from re import match as re_match, search as re_search, split as re_split
 from time import sleep, time
 from os import path as ospath, remove as osremove, listdir, walk
