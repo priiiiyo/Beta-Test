@@ -546,7 +546,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
     if not is_mega_link(link) and not isQbit and not is_magnet(link) \
         and not is_gdrive_link(link) and not link.endswith('.torrent'):
         content_type = get_content_type(link)
-        if content_type is None or match(r'text/html|text/plain', content_type):
+        if content_type is None or re_match(r'text/html|text/plain', content_type):
             try:
                 is_gdtot = is_gdtot_link(link)
                 link = direct_link_generator(link)
@@ -561,7 +561,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
             content_type = None
         else:
             content_type = get_content_type(link)
-        if content_type is None or match(r'application/x-bittorrent|application/octet-stream', content_type):
+        if content_type is None or re_match(r'application/x-bittorrent|application/octet-stream', content_type):
             try:
                 resp = requests.get(link, timeout=10, headers = {'user-agent': 'Wget/1.12'})
                 if resp.status_code == 200:
