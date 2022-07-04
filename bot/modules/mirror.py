@@ -215,7 +215,7 @@ class MirrorListener:
         # this is inspired by def mirror to get the link from message
         mesg = self.message.text.split('\n')
         message_args = mesg[0].split(' ', maxsplit=1)
-        reply_to = message.reply_to_message
+        reply_to = self.message.reply_to_message
         slmsg = f"Added by: {uname} \n👥 User ID: <code>{self.user_id}</code>\n\n"
         if LINK_LOGS:
             try:
